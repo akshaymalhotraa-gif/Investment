@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Never commit credentials. These live in ~/.config/healthlog/ by design,
+# but guard against a stray copy landing in the repo.
+client_secret*.json
+token.json
+foods.json
