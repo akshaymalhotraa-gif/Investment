@@ -1,0 +1,37 @@
+name: Airbus & Boeing delivery tracker
+
+on:
+  schedule:
+    - cron: "17 6 */2 * *"   # every 2 days, 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Max pages to scan (raise for a deep backfill)"
+        default: "60"
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r delivery-tracker/requirements.txt
+      - name: Scrape planespotters.net/deliveries
+        env:
+          MAX_PAGES: ${{ github.event.inputs.max_pages || '60' }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        run: python delivery-tracker/scrape_deliveries.py
+      - name: Commit updated data
+        run: |
+          git config user.name "delivery-tracker-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add delivery-tracker/data
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update Airbus/Boeing deliveries $(date -u +%F)"
+          git push
